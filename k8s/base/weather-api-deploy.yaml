@@ -9,7 +9,7 @@ spec:
     spec:
       containers:
       - name: api
-        image: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-api:6ff34272c81b532126dc6bb622e2e98082412a83
+        image: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-api:896ca99a7a543f7a1917a68bcab4bbcd21633664
         env:
         - name: OPENWEATHER_API_KEY
           valueFrom:
