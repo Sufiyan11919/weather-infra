@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: weather-api }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: weather-api } }
+  template:
+    metadata: { labels: { app: weather-api } }
+    spec:
+      containers:
+      - name: api
+        image: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-api:latest
+        env:
+        - name: OPENWEATHER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: openweather
+              key: key
+        ports: [{ containerPort: 4000 }]

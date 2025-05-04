@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: weather-infra
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Sufiyan11919/weather-infra.git
+    path: k8s/prod
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

@@ -1,0 +1,31 @@
+name: UAT deploy (EC2 + Compose)
+
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  uat:
+    if: contains(github.event.pull_request.labels.*.name, 'promote-uat')
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: SSH → UAT VM, pull repo & run compose
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host:      ${{ secrets.UAT_HOST }}
+        username:  ec2-user
+        key:       ${{ secrets.UAT_SSH_KEY }}
+        script: |
+          sudo yum -y install git docker
+          sudo service docker start
+          if [ ! -d weather-infra ]; then
+            git clone --depth 1 https://github.com/${{ github.repository }}.git
+          else
+            cd weather-infra && git pull
+          fi
+          cd weather-infra/scripts && STAGE=uat ./uat_apply.sh
+
+    - name: Comment success
+      run: gh pr comment ${{ github.event.pull_request.number }} --body "✅ UAT passed"
+      env: { GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} }

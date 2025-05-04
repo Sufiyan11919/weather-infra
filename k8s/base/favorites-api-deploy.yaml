@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: favorites-api }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: favorites-api } }
+  template:
+    metadata: { labels: { app: favorites-api } }
+    spec:
+      containers:
+      - name: api
+        image: 943347376383.dkr.ecr.us-east-2.amazonaws.com/favorites-api:latest
+        ports: [{ containerPort: 5000 }]

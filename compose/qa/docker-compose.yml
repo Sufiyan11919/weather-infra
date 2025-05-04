@@ -1,0 +1,23 @@
+version: "3.9"
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+      MYSQL_DATABASE: weatherdb
+
+  favorites-api:
+    image: 943347376383.dkr.ecr.us-east-2.amazonaws.com/favorites-api:latest
+    environment:
+      DB_URL: mysql+pymysql://root:example@db/weatherdb
+    depends_on: [db]
+
+  weather-api:
+    image: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-api:latest
+    environment:
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY}
+
+  frontend:
+    image: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-frontend:latest
+    ports: ["80:80"]
+    depends_on: [weather-api, favorites-api]
