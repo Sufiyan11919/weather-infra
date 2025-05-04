@@ -1,0 +1,19 @@
+replicaCount: 2
+image:
+  repository: ""
+  tag: ""
+service:
+  type: ClusterIP
+  port: 4000
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: "api.example.com"
+      paths:
+        - path: /
+          pathType: Prefix
+rollout:
+  strategy: blueGreen
+  activeService: blue
+  previewService: green
