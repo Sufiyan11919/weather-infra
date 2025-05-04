@@ -1,0 +1,6 @@
+image:
+  repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/favourite-api
+  tag: v0.0.0-rc.1        # change by PR when you promote
+rollout:
+  activeService: blue
+  previewService: green

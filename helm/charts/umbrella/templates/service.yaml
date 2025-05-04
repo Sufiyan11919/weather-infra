@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "umbrella.fullname" . }}-{{ .Values.rollout.activeService }}
+spec:
+  selector:
+    app: {{ include "umbrella.fullname" . }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.port }}
