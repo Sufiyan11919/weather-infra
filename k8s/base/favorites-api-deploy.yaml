@@ -9,5 +9,5 @@ spec:
     spec:
       containers:
       - name: api
-        image: 943347376383.dkr.ecr.us-east-2.amazonaws.com/favorites-api:latest
+        image: 943347376383.dkr.ecr.us-east-2.amazonaws.com/favorites-api:5919f451db94237fe357c64fde3b9fa76efbf184
         ports: [{ containerPort: 5000 }]
