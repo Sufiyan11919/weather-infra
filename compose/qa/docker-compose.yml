@@ -1,23 +1,39 @@
-version: "3.9"
-services:
-  db:
-    image: mysql:8.0
-    environment:
-      MYSQL_ROOT_PASSWORD: example
-      MYSQL_DATABASE: weatherdb
+# weather-infra/.github/workflows/uat.yml
+name: UAT deploy (EC2 + Compose)
 
-  favorites-api:
-    image: 943347376383.dkr.ecr.us-east-2.amazonaws.com/favorites-api:latest
-    environment:
-      DB_URL: mysql+pymysql://root:example@db/weatherdb
-    depends_on: [db]
+on:
+  pull_request:
+    types: [labeled]
 
-  weather-api:
-    image: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-api:latest
-    environment:
-      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY}
+jobs:
+  uat:
+    if: contains(github.event.pull_request.labels.*.name, 'promote-uat')
+    runs-on: ubuntu-latest
 
-  frontend:
-    image: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-frontend:latest
-    ports: ["80:80"]
-    depends_on: [weather-api, favorites-api]
+    steps:
+    - name: SSH & deploy to UAT VM
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host:     ${{ secrets.UAT_HOST }}
+        username: ec2-user
+        key:      ${{ secrets.UAT_SSH_KEY }}
+        script: |
+          sudo yum -y install git docker docker-compose-plugin
+          sudo service docker start
+
+          if [ ! -d weather-infra ]; then
+            git clone --depth=1 https://github.com/${{ github.repository }}.git
+          else
+            cd weather-infra && git pull && cd ..
+          fi
+
+          echo "OPENWEATHER_API_KEY=${{ secrets.OPENWEATHER_API_KEY }}" \
+            > weather-infra/compose/uat/.env
+
+          cd weather-infra/scripts
+          STAGE=uat ./uat_apply.sh
+
+    - name: Comment success on PR
+      run: gh pr comment ${{ github.event.pull_request.number }} --body "✅ UAT passed"
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

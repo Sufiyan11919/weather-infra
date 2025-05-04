@@ -1,3 +1,4 @@
+#weather-infra/scripts/qa_apply.sh
 #!/usr/bin/env bash
 # ------------------------------------------------------------------
 # Deploy or refresh the QA docker‑compose stack on the QA EC2 host

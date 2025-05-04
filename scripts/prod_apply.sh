@@ -1,3 +1,4 @@
+#weather-infra/scripts/prod_apply.sh
 #!/usr/bin/env bash
 set -euo pipefail
 

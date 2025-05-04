@@ -1,4 +1,6 @@
+# weather-infra/compose/uat/docker-compose.yml
 version: "3.9"
+
 services:
   db:
     image: mysql:8.0
@@ -14,8 +16,8 @@ services:
 
   weather-api:
     image: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-api:latest
-    environment:
-      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY}
+    env_file:
+      - .env
 
   frontend:
     image: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-frontend:latest

@@ -1,3 +1,4 @@
+# weather-infra/.github/workflows/uat.yml
 name: UAT deploy (EC2 + Compose)
 
 on:
@@ -10,22 +11,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: SSH → UAT VM, pull repo & run compose
+    - name: SSH & deploy to UAT VM
       uses: appleboy/ssh-action@v1.0.0
       with:
-        host:      ${{ secrets.UAT_HOST }}
-        username:  ec2-user
-        key:       ${{ secrets.UAT_SSH_KEY }}
+        host:     ${{ secrets.UAT_HOST }}
+        username: ec2-user
+        key:      ${{ secrets.UAT_SSH_KEY }}
         script: |
-          sudo yum -y install git docker
+          sudo yum -y install git docker docker-compose-plugin
           sudo service docker start
-          if [ ! -d weather-infra ]; then
-            git clone --depth 1 https://github.com/${{ github.repository }}.git
-          else
-            cd weather-infra && git pull
-          fi
-          cd weather-infra/scripts && STAGE=uat ./uat_apply.sh
 
-    - name: Comment success
+          if [ ! -d weather-infra ]; then
+            git clone --depth=1 https://github.com/${{ github.repository }}.git
+          else
+            cd weather-infra && git pull && cd ..
+          fi
+
+          echo "OPENWEATHER_API_KEY=${{ secrets.OPENWEATHER_API_KEY }}" \
+            > weather-infra/compose/uat/.env
+
+          cd weather-infra/scripts
+          STAGE=uat ./uat_apply.sh
+
+    - name: Comment success on PR
       run: gh pr comment ${{ github.event.pull_request.number }} --body "✅ UAT passed"
-      env: { GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

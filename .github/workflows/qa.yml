@@ -1,3 +1,4 @@
+# weather-infra/.github/workflows/qa.yml
 name: QA deploy (EC2 + Compose)
 
 on:
@@ -10,22 +11,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: SSH → QA VM, pull repo & run compose
+    - name: SSH & deploy to QA VM
       uses: appleboy/ssh-action@v1.0.0
       with:
-        host:      ${{ secrets.QA_HOST }}
-        username:  ec2-user
-        key:       ${{ secrets.QA_SSH_KEY }}
+        host:     ${{ secrets.QA_HOST }}
+        username: ec2-user
+        key:      ${{ secrets.QA_SSH_KEY }}
         script: |
-          sudo yum -y install git docker
+          # install docker + compose V2 plugin
+          sudo yum -y install git docker docker-compose-plugin
           sudo service docker start
-          if [ ! -d weather-infra ]; then
-            git clone --depth 1 https://github.com/${{ github.repository }}.git
-          else
-            cd weather-infra && git pull
-          fi
-          cd weather-infra/scripts && STAGE=qa ./qa_apply.sh
 
-    - name: Comment success
+          # clone or update infra repo
+          if [ ! -d weather-infra ]; then
+            git clone --depth=1 https://github.com/${{ github.repository }}.git
+          else
+            cd weather-infra && git pull && cd ..
+          fi
+
+          # inject your secret into compose/.env
+          echo "OPENWEATHER_API_KEY=${{ secrets.OPENWEATHER_API_KEY }}" \
+            > weather-infra/compose/qa/.env
+
+          # finally run compose
+          cd weather-infra/scripts
+          STAGE=qa ./qa_apply.sh
+
+    - name: Comment success on PR
       run: gh pr comment ${{ github.event.pull_request.number }} --body "✅ QA passed"
-      env: { GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
