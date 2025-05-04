@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
-# Usage: ./scripts/prod_apply.sh <service-name> <new-tag>
 set -euo pipefail
 
-svc="$1"          # e.g. weather-frontend
-tag="$2"          # full SHA or vX.Y.Z
-files="k8s/base/${svc}-*.yaml"
+svc="$1"
+tag="$2"
 
-# replace only the *image tag*; registry+repo stay unchanged
-sed -i -E "s|(/${svc}:)([^ \"']+)|\1${tag}|g" $files
+# 1) update the k8s/base manifest for this service
+sed -i -E "s|(${svc}:).*|\1${tag}|g" k8s/base/${svc}-*.yaml
 
-git add $files
+# 2) configure a Git user so the next commit isn’t rejected
+git config --global user.email "github-actions[bot]@users.noreply.github.com"
+git config --global user.name "GitHub Actions"
+
+# 3) commit & leave pushing and PR creation to the ci script
+git add k8s/base/${svc}-*.yaml
 git commit -m "Promote ${svc}:${tag} [skip ci]"
