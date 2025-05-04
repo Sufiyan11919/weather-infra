@@ -16,5 +16,5 @@ spec:
     spec:
       containers:
       - name: web
-        image: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-frontend:latest
+        image: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-frontend:ae621b73e684948dcbea6d448ffdabee0e8ef320
         ports: [{ containerPort: 80 }]
