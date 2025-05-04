@@ -15,8 +15,8 @@ module "eks" {
 
   cluster_name    = "weather-${terraform.workspace}"
   cluster_version = "1.29"
-  vpc_id     = var.vpc_id
-  subnet_ids = var.subnet_ids
+  vpc_id          = var.vpc_id
+  subnet_ids      = var.subnet_ids
 
 
   # single cheap node group (one t3.small; scale to 1–2 pods for UAT)
