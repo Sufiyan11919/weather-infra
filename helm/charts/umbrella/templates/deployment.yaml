@@ -1,3 +1,9 @@
+{{- /*
+deployment.yaml  – umbrella chart
+* If .Values.rollout.enabled == true  -> Rollout (blue/green)
+* If .Values.rollout.enabled == false -> plain Deployment
+*/ -}}
+
 {{- if .Values.rollout.enabled }}
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
@@ -27,3 +33,11 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           ports:
             - containerPort: {{ .Values.service.port }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.service.port }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.service.port }}
