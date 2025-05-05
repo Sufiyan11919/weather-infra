@@ -1,8 +1,7 @@
-#weather-infra/helm/charts/umbrella/templates/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "umbrella.fullname" . }}-{{ .Values.rollout.activeService }}
+  name: {{ include "umbrella.fullname" . }}{{- if .Values.rollout.enabled }}-{{ .Values.rollout.activeService }}{{- end }}
 spec:
   selector:
     app: {{ include "umbrella.fullname" . }}

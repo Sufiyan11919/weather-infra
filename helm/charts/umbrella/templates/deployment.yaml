@@ -1,14 +1,19 @@
-#weather-infra/helm/charts/umbrella/templates/deployment.yaml
+{{- if .Values.rollout.enabled }}
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
-metadata:
-  name: {{ include "umbrella.fullname" . }}
 spec:
-  replicas: {{ .Values.replicaCount }}
   strategy:
     blueGreen:
       activeService: {{ .Values.rollout.activeService }}
       previewService: {{ .Values.rollout.previewService }}
+{{- else }}
+apiVersion: apps/v1
+kind: Deployment
+{{- end }}
+metadata:
+  name: {{ include "umbrella.fullname" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       app: {{ include "umbrella.fullname" . }}
@@ -22,11 +27,3 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           ports:
             - containerPort: {{ .Values.service.port }}
-          readinessProbe:
-            httpGet:
-              path: /
-              port: {{ .Values.service.port }}
-          livenessProbe:
-            httpGet:
-              path: /
-              port: {{ .Values.service.port }}

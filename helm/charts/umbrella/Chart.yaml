@@ -1,6 +1,4 @@
-#weather-infra/helm/charts/umbrella/Chart.yaml
 apiVersion: v2
 name: umbrella
 version: 0.1.0
 description: Umbrella chart for weather micro-services
-

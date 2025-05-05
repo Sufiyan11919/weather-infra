@@ -4,17 +4,17 @@ image:
   repository: ""
   tag: ""
 
+rollout:
+  enabled: true          # prod keeps blue/green; UAT overrides to false
+  strategy: blueGreen
+  activeService: blue
+  previewService: green
+
 service:
   type: ClusterIP
-  port: 4000            # default; each env file can override
+  port: 4000
 
 ingress:
   enabled: true
   className: nginx
-  hosts: []
-  # each env file supplies its own host list
-
-rollout:
-  strategy: blueGreen
-  activeService: blue
-  previewService: green
+  hosts: []              # supply per env if you need hostnames
