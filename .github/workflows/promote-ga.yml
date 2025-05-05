@@ -1,26 +1,25 @@
+# .github/workflows/promote-ga.yml
 name: Promote GA via ECR
+
 on:
   push:
-    # only non-rc tags, e.g. v1.4.0
     tags:
-      - 'v*.*.*'
+      - 'v*.*.*'     # fire on e.g. v1.4.0 (no -rc)
 
 env:
   AWS_REGION: us-east-2
-  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   SERVICES: favourite-api weather-api weather-frontend
-  GA_TAG: ${{ github.ref_name }}       # e.g. "v1.4.0"
+  GA_TAG: ${{ github.ref_name }}  # e.g. “v1.4.0”
 
 jobs:
-  retag-and-bump:
+  promote:
     runs-on: ubuntu-latest
     steps:
-      # 1) Checkout infra repo to read UAT values
-      - uses: actions/checkout@v4
+      - name: Checkout infra repo
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2) Configure AWS so we can talk to ECR
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -28,34 +27,25 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ env.AWS_REGION }}
 
-      # 3) Retag RC → GA, skipping services that already have GA
-      - name: Retag RC images to GA (skip existing)
+      - name: Retag UAT RC → GA in ECR (skip if exists)
         run: |
           set -euo pipefail
-
           for svc in $SERVICES; do
-            echo "🔍 Checking if $svc already has GA tag ${GA_TAG}..."
-            GA_EXISTS=$(aws ecr list-images \
-              --repository-name "$svc" \
-              --filter tagStatus=TAGGED \
-              --query "contains(imageIds[].imageTag, '${GA_TAG}')" \
-              --output text)
-
-            if [ "$GA_EXISTS" = "True" ] || [ "$GA_EXISTS" = "true" ]; then
-              echo "✅ $svc:$GA_TAG already exists—skipping retag."
+            echo "🔍 $svc: does GA tag $GA_TAG already exist?"
+            if aws ecr list-images \
+                 --repository-name "$svc" \
+                 --filter tagStatus=TAGGED \
+                 --query "contains(imageIds[].imageTag, '$GA_TAG')" \
+                 --output text | grep -q 'true'; then
+              echo "✅ $svc:$GA_TAG exists—skipping"
               continue
             fi
 
-            echo "⏳ Extracting RC tag from UAT overlay for $svc..."
+            echo "⏳ $svc: extracting RC from UAT overlay…"
             RC_TAG=$(grep '^  tag:' environments/uat/$svc/values.yaml \
                      | awk -F'"' '{print $2}')
 
-            if [[ ! "$RC_TAG" =~ ^${GA_TAG}-rc\.[0-9]+$ ]]; then
-              echo "❌ Unexpected RC tag '$RC_TAG' for $svc—aborting."
-              exit 1
-            fi
-
-            echo "🔖 Retagging $svc:$RC_TAG → $svc:$GA_TAG"
+            echo "🔖 $svc: retag $RC_TAG → $GA_TAG"
             aws ecr batch-get-image \
               --repository-name "$svc" \
               --image-ids imageTag="$RC_TAG" \
@@ -68,30 +58,21 @@ jobs:
               --image-manifest file://manifest.json
           done
 
-      # 4) Install & auth GitHub CLI
-      - name: Install GitHub CLI
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y gh
-      - name: Authenticate GH CLI
-        run: echo "${{ secrets.GH_PAT }}" | gh auth login --with-token
-
-      # 5) Update prod overlay and open PR
-      - name: Bump prod values & open PR
+      - name: Create bump branch & update prod overlays
         run: |
           git checkout -b bump-prod-${GA_TAG}
-
           for svc in $SERVICES; do
-            FILE=environments/prod/$svc/values.yaml
-            echo "✏️  Updating $FILE → tag: ${GA_TAG}"
-            sed -i "s|tag:.*|tag: \"${GA_TAG}\"|" "$FILE"
+            file=environments/prod/$svc/values.yaml
+            sed -i "s|tag:.*|tag: \"${GA_TAG}\"|" "$file"
           done
-
           git commit -am "chore: promote services → ${GA_TAG}"
-          git push -u origin bump-prod-${GA_TAG}
 
-          gh pr create \
-            --title  "Promote all services → ${GA_TAG}" \
-            --body   "Automated GA promotion from infra" \
-            --base   main \
-            --head   bump-prod-${GA_TAG}
+      - name: Open Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: Promote all services → ${{ env.GA_TAG }}
+          commit-message: chore: promote services → ${{ env.GA_TAG }}
+          head: bump-prod-${{ env.GA_TAG }}
+          base: main
+          body: Automated GA promotion from infra
