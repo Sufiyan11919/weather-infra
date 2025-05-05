@@ -5,6 +5,7 @@ name: UAT Smoke-Tests
 #  Fails the workflow (and alerts you) if ANY endpoint returns non-2xx.
 #
 on:
+  workflow_dispatch:   
   push:
     branches: [ main ]
     paths:
