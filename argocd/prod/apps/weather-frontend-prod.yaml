@@ -1,12 +1,13 @@
+#weather-infra/argocd/prod/apps/weather-frontend-prod.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: weather-api-prod
+  name: weather-frontend-prod
   namespace: argocd
 spec:
   project: default
   destination:
-    name: weather-prod
+    server: https://kubernetes.default.svc
     namespace: prod
   source:
     repoURL: https://github.com/Sufiyan11919/weather-infra.git
@@ -14,7 +15,7 @@ spec:
     path: helm/charts/umbrella
     helm:
       valueFiles:
-        - ../../../environments/prod/weather-api/values.yaml
+        - environments/prod/weather-frontend/values.yaml # ← path fixed
   syncPolicy:
     automated:
       prune: true
