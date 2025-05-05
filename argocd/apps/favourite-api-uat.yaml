@@ -2,12 +2,12 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: favourite-api-uat
-  namespace: argocd                # Argo CD watches its own ns
+  namespace: argocd
 spec:
   project: default
   destination:
     server: https://kubernetes.default.svc
-    namespace: uat                 # runtime namespace
+    namespace: uat
   source:
     repoURL: https://github.com/Sufiyan11919/weather-infra.git
     targetRevision: main

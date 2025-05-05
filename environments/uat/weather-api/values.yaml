@@ -1,7 +1,6 @@
-#weather-infra/environments/uat/weather-api/values.yaml
 image:
-  repository: "940000000000.dkr.ecr.us-east-2.amazonaws.com/weather-api"
+  repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-api
   tag: "v1.0.0-uat"
-rollout:
-  activeService: blue
-  previewService: green
+
+ingress:
+  enabled: false
