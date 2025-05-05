@@ -1,6 +1,5 @@
-# #weather-infra/terraform/uat/variables.tf
 variable "region" {
-  description = "AWS region for the UAT workspace"
+  description = "AWS region for the PROD workspace"
   type        = string
 }
 

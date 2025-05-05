@@ -1,3 +1,4 @@
+#weather-infra/terraform/uat/uat.auto.tfvars
 region = "us-east-2"
 
 # straight from the screenshot

@@ -1,14 +1,22 @@
-#weather-infra/environments/uat/weather-api/values.yaml
+useRollout: true
+replicaCount: 3
+
 image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-api
-  tag: ""
+  tag: "v1.4.0"
 
 service:
-  port: 4000        # keep if the container listens on 4000
+  port: 4000
 
 ingress:
-  enabled: false
+  enabled: true
+  hosts:
+    - host: weather-api.prod.example.com
+      paths:
+        - path: /
+          pathType: Prefix
 
-extraEnv:            # ← add this block
+extraEnv:
   - name: OPENWEATHER_API_KEY
-    value: "0e97eb3b6d3e77247e2c5706ed44a0bb"
+    value: "${OPENWEATHER_API_KEY}"
+

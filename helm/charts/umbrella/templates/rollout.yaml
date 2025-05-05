@@ -1,11 +1,11 @@
-#weather-infra/helm/charts/umbrella/templates/deployment.yaml
-{{- if not .Values.useRollout }}
-apiVersion: apps/v1
-kind: Deployment
+{{- if .Values.useRollout }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: {{ include "umbrella.fullname" . }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app: {{ include "umbrella.fullname" . }}
@@ -27,4 +27,10 @@ spec:
             httpGet:
               path: /
               port: {{ .Values.service.port }}
+  strategy:
+    blueGreen:
+      activeService:  {{ include "umbrella.fullname" . }}
+      previewService: {{ include "umbrella.fullname" . }}-preview
+      autoPromotionEnabled: false
+      scaleDownDelaySeconds: 30
 {{- end }}

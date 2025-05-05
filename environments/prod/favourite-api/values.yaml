@@ -1,7 +1,14 @@
-#weather-infra/environments/uat/favourite-api/values.yaml
+useRollout: true
+replicaCount: 3
+
 image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/favourite-api
-  tag: ""
+  tag: "v1.4.0"
 
 ingress:
-  enabled: false        # ← disable ALB/Ingress for UAT
+  enabled: true
+  hosts:
+    - host: favourite-api.prod.example.com
+      paths:
+        - path: /
+          pathType: Prefix

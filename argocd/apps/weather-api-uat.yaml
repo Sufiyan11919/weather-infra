@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: weather-api-uat
+  name: weather-frontend-uat
   namespace: argocd
 spec:
   project: default
@@ -14,7 +14,7 @@ spec:
     path: helm/charts/umbrella
     helm:
       valueFiles:
-        - ../../../environments/uat/weather-api/values.yaml
+        - ../../../environments/uat/weather-frontend/values.yaml
   syncPolicy:
     automated:
       prune: true

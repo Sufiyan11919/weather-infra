@@ -1,4 +1,8 @@
+#weather-infra/helm/charts/umbrella/values.yaml
 replicaCount: 2
+
+# UAT keeps the default “false” — PROD sets this to true
+useRollout: false
 
 image:
   repository: ""

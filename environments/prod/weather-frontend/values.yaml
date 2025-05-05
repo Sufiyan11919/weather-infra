@@ -1,9 +1,17 @@
-#weather-infra/environments/uat/weather-frontend/values.yaml
+useRollout: true
+replicaCount: 3
+
 image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-frontend
-  tag: ""
+  tag: "v1.4.0"
+
 service:
-  port: 80               # frontend listens on 80
+  port: 80
 
 ingress:
-  enabled: false
+  enabled: true
+  hosts:
+    - host: weather.prod.example.com
+      paths:
+        - path: /
+          pathType: Prefix
