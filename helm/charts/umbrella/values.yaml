@@ -1,19 +1,19 @@
-#weather-infra/umbrella/values.yaml
 replicaCount: 2
+
 image:
   repository: ""
   tag: ""
+
 service:
   type: ClusterIP
-  port: 4000
+  port: 4000            # default; each env file can override
+
 ingress:
   enabled: true
   className: nginx
-  hosts:
-    - host: "api.example.com"
-      paths:
-        - path: /
-          pathType: Prefix
+  hosts: []
+  # each env file supplies its own host list
+
 rollout:
   strategy: blueGreen
   activeService: blue

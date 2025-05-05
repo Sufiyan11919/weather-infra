@@ -1,21 +1,20 @@
-#weather-infra/argocd/apps/favourite-api-uat.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: favourite-api-uat
-  namespace: argocd
+  namespace: argocd                # Argo CD watches its own ns
 spec:
   project: default
   destination:
     server: https://kubernetes.default.svc
-    namespace: uat
+    namespace: uat                 # runtime namespace
   source:
     repoURL: https://github.com/Sufiyan11919/weather-infra.git
     targetRevision: main
     path: helm/charts/umbrella
     helm:
       valueFiles:
-        - ../../environments/uat/favourite-api/values.yaml
+        - ../../../environments/uat/favourite-api/values.yaml
   syncPolicy:
     automated:
       prune: true
