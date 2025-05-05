@@ -1,0 +1,92 @@
+name: UAT Smoke-Tests
+
+#
+#  Runs automatically when the UAT overlay is changed on main.
+#  Fails the workflow (and alerts you) if ANY endpoint returns non-2xx.
+#
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'environments/uat/**'       # only when UAT values change
+
+env:
+  CLUSTER_NAME:   weather-uat
+  AWS_REGION:     us-east-2
+
+  # Ports we’ll tunnel locally
+  WEATHER_PORT:   14000
+  FAV_PORT:       15000
+  FRONT_PORT:     16000
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    # ───────────────────────────────────────── AWS / kubectl
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region:            ${{ env.AWS_REGION }}
+
+    - name: Update kubeconfig
+      run: aws eks update-kubeconfig --name $CLUSTER_NAME --region $AWS_REGION
+
+    # ───────────────────────────────────────── Wait for rollout
+    - name: Wait for Deployments to be Available
+      run: |
+        set -e
+        for d in favourite-api-uat-umbrella \
+                 weather-api-uat-umbrella  \
+                 weather-frontend-uat-umbrella
+        do
+          echo "⏳ waiting for $d"
+          kubectl -n uat rollout status deploy/$d --timeout=120s
+        done
+
+    # ───────────────────────────────────────── Start tunnels
+    - name: Start port-forwards
+      run: |
+        set -e
+        kubectl -n uat port-forward svc/weather-api-uat-umbrella      $WEATHER_PORT:4000 &
+        PF1=$!
+        kubectl -n uat port-forward svc/favourite-api-uat-umbrella    $FAV_PORT:4000 &
+        PF2=$!
+        kubectl -n uat port-forward svc/weather-frontend-uat-umbrella $FRONT_PORT:80   &
+        PF3=$!
+        # Export PIDs so we can kill them in the finally block
+        echo "PF1=$PF1" >> $GITHUB_ENV
+        echo "PF2=$PF2" >> $GITHUB_ENV
+        echo "PF3=$PF3" >> $GITHUB_ENV
+        sleep 10
+
+    # ───────────────────────────────────────── Curl checks
+    - name: Curl weather-api
+      run: |
+        set -e
+        echo "GET /api/weather…"
+        curl -f http://127.0.0.1:$WEATHER_PORT/api/weather?city=Berlin
+
+    - name: Curl favourite-api (save & read)
+      run: |
+        set -e
+        echo "POST /api/fav…"
+        curl -f -X POST http://127.0.0.1:$FAV_PORT/api/fav \
+             -H 'Content-Type: application/json' \
+             -d '{"city":"Berlin","user":"demo@example.com"}'
+        echo "GET /api/fav…"
+        curl -f http://127.0.0.1:$FAV_PORT/api/fav?user=demo@example.com
+
+    - name: Curl frontend root
+      run: |
+        set -e
+        curl -f http://127.0.0.1:$FRONT_PORT/  # expect 200 + index.html
+
+    # ───────────────────────────────────────── Clean up tunnels
+    - name: Stop port-forwards
+      if: always()
+      run: |
+        kill $PF1 $PF2 $PF3 || true
