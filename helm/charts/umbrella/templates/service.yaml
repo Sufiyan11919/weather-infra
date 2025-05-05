@@ -1,4 +1,3 @@
-#weather-infra/helm/charts/umbrella/templates/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -11,11 +10,11 @@ spec:
       targetPort: {{ .Values.service.port }}
 
 {{- if .Values.useRollout }}
-
+---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "umbrella.fullname" . }}
+  name: {{ include "umbrella.fullname" . }}-preview
 spec:
   selector:
     app: {{ include "umbrella.fullname" . }}

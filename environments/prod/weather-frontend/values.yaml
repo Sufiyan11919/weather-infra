@@ -10,8 +10,6 @@ service:
 
 ingress:
   enabled: true
-  hosts:
-    - host: weather.prod.example.com
-      paths:
-        - path: /
-          pathType: Prefix
+  className: nginx
+  activeHost:  weather.prod.example.com
+  previewHost: weather-preview.prod.example.com

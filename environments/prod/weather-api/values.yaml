@@ -10,13 +10,10 @@ service:
 
 ingress:
   enabled: true
-  hosts:
-    - host: weather-api.prod.example.com
-      paths:
-        - path: /
-          pathType: Prefix
+  className: nginx               # or alb, traefik…
+  activeHost:  weather-api.prod.example.com
+  previewHost: weather-api-preview.prod.example.com
 
 extraEnv:
   - name: OPENWEATHER_API_KEY
     value: "${OPENWEATHER_API_KEY}"
-

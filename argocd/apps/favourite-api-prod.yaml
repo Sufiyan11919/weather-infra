@@ -4,9 +4,9 @@ metadata:
   name: favourite-api-prod
   namespace: argocd
 spec:
-  project: default
+  project: default                 # ← added for consistency
   destination:
-    name: weather-prod            # ← remote prod cluster
+    name: weather-prod             # remote cluster (added via argocd cluster add)
     namespace: prod
   source:
     repoURL: https://github.com/Sufiyan11919/weather-infra.git
@@ -21,4 +21,4 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
-      - RespectIgnoreDifferences=true   # hides Rollout status-field churn
+      - RespectIgnoreDifferences=true

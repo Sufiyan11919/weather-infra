@@ -5,10 +5,11 @@ image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/favourite-api
   tag: "v1.4.0"
 
+service:
+  port: 4000
+
 ingress:
   enabled: true
-  hosts:
-    - host: favourite-api.prod.example.com
-      paths:
-        - path: /
-          pathType: Prefix
+  className: nginx
+  activeHost:  favourite-api.prod.example.com
+  previewHost: favourite-api-preview.prod.example.com
