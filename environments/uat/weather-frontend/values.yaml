@@ -1,9 +1,9 @@
 #weather-infra/helm/charts/umbrella/values.yaml
 image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-frontend
-  tag: v0.0.0-rc.1
-service:
-  port: 80               # frontend listens on 80
+  tag: "v0.0.0-rc.1"
+
 rollout:
   activeService: blue
   previewService: green
+
