@@ -1,6 +1,6 @@
 image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-api
-  tag: "latest"
+  tag: latest
 
 ingress:
   enabled: false

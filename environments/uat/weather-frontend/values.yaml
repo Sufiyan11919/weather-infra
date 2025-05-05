@@ -1,6 +1,6 @@
 image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-frontend
-  tag: "latest"
+  tag: latest
 service:
   port: 80               # frontend listens on 80
 
