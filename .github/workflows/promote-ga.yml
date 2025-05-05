@@ -1,25 +1,27 @@
-# .github/workflows/promote-ga.yml
 name: Promote GA via ECR
 
 on:
   push:
+    # only non-rc tags, e.g. v1.4.0
     tags:
-      - 'v*.*.*'     # fire on e.g. v1.4.0 (no -rc)
+      - 'v*.*.*'
 
 env:
   AWS_REGION: us-east-2
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   SERVICES: favourite-api weather-api weather-frontend
-  GA_TAG: ${{ github.ref_name }}  # e.g. “v1.4.0”
+  GA_TAG: ${{ github.ref_name }}       # e.g. "v1.4.0"
 
 jobs:
-  promote:
+  retag-and-bump:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout infra repo
-        uses: actions/checkout@v4
+      # 1) Checkout infra repo to read UAT values
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # 2) Configure AWS so we can talk to ECR
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -27,25 +29,34 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ env.AWS_REGION }}
 
-      - name: Retag UAT RC → GA in ECR (skip if exists)
+      # 3) Retag RC → GA, skipping services that already have GA
+      - name: Retag RC images to GA (skip existing)
         run: |
           set -euo pipefail
+
           for svc in $SERVICES; do
-            echo "🔍 $svc: does GA tag $GA_TAG already exist?"
-            if aws ecr list-images \
-                 --repository-name "$svc" \
-                 --filter tagStatus=TAGGED \
-                 --query "contains(imageIds[].imageTag, '$GA_TAG')" \
-                 --output text | grep -q 'true'; then
-              echo "✅ $svc:$GA_TAG exists—skipping"
+            echo "🔍 Checking if $svc already has GA tag ${GA_TAG}..."
+            GA_EXISTS=$(aws ecr list-images \
+              --repository-name "$svc" \
+              --filter tagStatus=TAGGED \
+              --query "contains(imageIds[].imageTag, '${GA_TAG}')" \
+              --output text)
+
+            if [ "$GA_EXISTS" = "True" ] || [ "$GA_EXISTS" = "true" ]; then
+              echo "✅ $svc:$GA_TAG already exists—skipping retag."
               continue
             fi
 
-            echo "⏳ $svc: extracting RC from UAT overlay…"
+            echo "⏳ Extracting RC tag from UAT overlay for $svc..."
             RC_TAG=$(grep '^  tag:' environments/uat/$svc/values.yaml \
                      | awk -F'"' '{print $2}')
 
-            echo "🔖 $svc: retag $RC_TAG → $GA_TAG"
+            if [[ ! "$RC_TAG" =~ ^${GA_TAG}-rc\.[0-9]+$ ]]; then
+              echo "❌ Unexpected RC tag '$RC_TAG' for $svc—aborting."
+              exit 1
+            fi
+
+            echo "🔖 Retagging $svc:$RC_TAG → $svc:$GA_TAG"
             aws ecr batch-get-image \
               --repository-name "$svc" \
               --image-ids imageTag="$RC_TAG" \
@@ -58,21 +69,24 @@ jobs:
               --image-manifest file://manifest.json
           done
 
+      # 4) Create bump branch & update prod overlays
       - name: Create bump branch & update prod overlays
         run: |
           git checkout -b bump-prod-${GA_TAG}
           for svc in $SERVICES; do
-            file=environments/prod/$svc/values.yaml
-            sed -i "s|tag:.*|tag: \"${GA_TAG}\"|" "$file"
+            FILE=environments/prod/$svc/values.yaml
+            echo "✏️  Updating $FILE → tag: ${GA_TAG}"
+            sed -i "s|tag:.*|tag: \"${GA_TAG}\"|" "$FILE"
           done
           git commit -am "chore: promote services → ${GA_TAG}"
 
+      # 5) Open Pull Request via peter-evans/create-pull-request
       - name: Open Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          title: Promote all services → ${{ env.GA_TAG }}
-          commit-message: "chore: promote services → ${{ env.GA_TAG }}"
-          branch: bump-prod-${{ env.GA_TAG }}
+          title: "Promote all services → ${GA_TAG}"
+          commit-message: "chore: promote services → ${GA_TAG}"
+          body: "Automated GA promotion from infra"
+          branch: "bump-prod-${GA_TAG}"
           base: main
-          body: Automated GA promotion from infra
