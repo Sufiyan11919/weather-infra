@@ -1,4 +1,3 @@
-#weather-infra/helm/charts/umbrella/templates/ingress.yaml
 {{- if .Values.ingress.enabled }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -17,7 +16,7 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "umbrella.fullname" $ }}-{{ $.Values.rollout.activeService }}
+                name: {{ include "umbrella.fullname" $ }}{{- if $.Values.rollout.enabled }}-{{ $.Values.rollout.activeService }}{{- end }}
                 port:
                   number: {{ $.Values.service.port }}
         {{- end }}
