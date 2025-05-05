@@ -1,7 +1,7 @@
 name: Promote GA via ECR
 on:
   push:
-    # only tags without "-rc"
+    # only non-rc tags, e.g. v1.4.0
     tags:
       - 'v*.*.*'
 
@@ -9,61 +9,62 @@ env:
   AWS_REGION: us-east-2
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   SERVICES: weather-api weather-frontend favourite-api
-  GA_TAG: ${{ github.ref_name }}       # e.g. "v1.4.0"
+  GA_TAG: ${{ github.ref_name }}  # the tag you pushed, e.g. “v1.4.0”
 
 jobs:
   retag-and-bump:
     runs-on: ubuntu-latest
     steps:
-      - name: Configure AWS creds
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ env.AWS_REGION }}
 
-      - name: Retag RC images to GA
+      - name: Retag latest RC images to GA
         run: |
           for svc in $SERVICES; do
             echo "⏳ Finding latest RC for $svc..."
-            # List all image tags, filter rc’s, sort by pushed date, take the latest
             LATEST_RC=$(aws ecr describe-images \
-              --repository-name $svc \
-              --query 'reverse(sort_by(imageDetails,&imagePushedAt))[?starts_with(imageTags[0],`'${GA_TAG}'-rc.`)].imageTags[0]' \
-              --output text | head -1)
-
+              --repository-name "$svc" \
+              --query "reverse(sort_by(imageDetails,&imagePushedAt))[?starts_with(imageTags[0],'${GA_TAG}-rc.')][0].imageTags[0]" \
+              --output text)
             echo "🔖 Retagging $svc:$LATEST_RC → $svc:$GA_TAG"
-            # pull the manifest
             aws ecr batch-get-image \
-              --repository-name $svc \
-              --image-ids imageTag=$LATEST_RC \
+              --repository-name "$svc" \
+              --image-ids imageTag="$LATEST_RC" \
               --query 'images[0].imageManifest' --output text \
               > manifest.json
-
-            # push under GA tag
             aws ecr put-image \
-              --repository-name $svc \
-              --image-tag $GA_TAG \
+              --repository-name "$svc" \
+              --image-tag "$GA_TAG" \
               --image-manifest file://manifest.json
           done
 
-      - name: Bump prod values and open PR
+      - name: Install GitHub CLI
         run: |
-          git clone https://x-access-token:${{ secrets.GH_PAT }}@github.com/Sufiyan11919/weather-infra.git
+          sudo apt-get update -y
+          sudo apt-get install -y gh
+
+      - name: Bump prod values and open PR
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          git clone https://x-access-token:${GH_PAT}@github.com/Sufiyan11919/weather-infra.git
           cd weather-infra
-          git checkout -b bump-prod-$GA_TAG
+          git checkout -b bump-prod-${GA_TAG}
 
           for svc in $SERVICES; do
             FILE=environments/prod/$svc/values.yaml
-            # update the image tag
-            sed -i "s|tag:.*|tag: \"$GA_TAG\"|" $FILE
+            sed -i "s|tag:.*|tag: \"${GA_TAG}\"|" "$FILE"
           done
 
-          git commit -am "chore: promote services to $GA_TAG"
+          git commit -am "chore: promote services to ${GA_TAG}"
           git push -u origin HEAD
 
           gh pr create \
-            --title  "Promote all services → $GA_TAG" \
+            --title  "Promote all services → ${GA_TAG}" \
             --body   "Automated GA promotion" \
             --base   main \
-            --head   bump-prod-$GA_TAG
+            --head   bump-prod-${GA_TAG}"
