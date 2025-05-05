@@ -1,7 +1,0 @@
-#weather-infra/environments/prod/weather-api/values.yaml
-image:
-  repository: "940000000000.dkr.ecr.us-east-2.amazonaws.com/weather-api"
-  tag: "v1.0.0"
-rollout:
-  activeService: green  # switch to green to go live
-  previewService: blue
