@@ -1,0 +1,7 @@
+#weather-infra/environments/uat/favourite-api/values.yaml
+image:
+  repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/favourite-api
+  tag: ""
+
+ingress:
+  enabled: false        # ← disable ALB/Ingress for UAT
