@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "umbrella.fullname" . }}{{- if .Values.rollout.enabled }}-{{ .Values.rollout.activeService }}{{- end }}
+  name: {{ include "umbrella.fullname" . }}
 spec:
   selector:
     app: {{ include "umbrella.fullname" . }}

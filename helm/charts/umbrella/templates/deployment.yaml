@@ -1,21 +1,5 @@
-{{- /*
-deployment.yaml  – umbrella chart
-* If .Values.rollout.enabled == true  -> Rollout (blue/green)
-* If .Values.rollout.enabled == false -> plain Deployment
-*/ -}}
-
-{{- if .Values.rollout.enabled }}
-apiVersion: argoproj.io/v1alpha1
-kind: Rollout
-spec:
-  strategy:
-    blueGreen:
-      activeService: {{ .Values.rollout.activeService }}
-      previewService: {{ .Values.rollout.previewService }}
-{{- else }}
 apiVersion: apps/v1
 kind: Deployment
-{{- end }}
 metadata:
   name: {{ include "umbrella.fullname" . }}
 spec:

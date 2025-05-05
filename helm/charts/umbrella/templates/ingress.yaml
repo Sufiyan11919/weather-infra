@@ -16,7 +16,7 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "umbrella.fullname" $ }}{{- if $.Values.rollout.enabled }}-{{ $.Values.rollout.activeService }}{{- end }}
+                name: {{ include "umbrella.fullname" $ }}
                 port:
                   number: {{ $.Values.service.port }}
         {{- end }}
