@@ -1,7 +1,7 @@
 name: Promote GA via ECR
 on:
   push:
-    # Only non-rc tags (e.g. “v1.4.0”)
+    # only non-rc tags, e.g. v1.4.0
     tags:
       - 'v*.*.*'
 
@@ -9,31 +9,17 @@ env:
   AWS_REGION: us-east-2
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   SERVICES: favourite-api weather-api weather-frontend
-  GA_TAG: ${{ github.ref_name }}              # e.g. “v1.4.0”
+  GA_TAG: ${{ github.ref_name }}       # e.g. "v1.4.0"
 
 jobs:
-  promote:
+  retag-and-bump:
     runs-on: ubuntu-latest
     steps:
-      # 1) Get the infra repo so we can read UAT tags
       - name: Checkout infra repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2) Pull each RC tag out of the UAT values.yaml
-      - name: Extract UAT RC tags
-        id: extract
-        run: |
-          echo "service,rc" > rc_list.csv
-          for svc in $SERVICES; do
-            RC_TAG=$(grep '^  tag:' environments/uat/$svc/values.yaml \
-                      | awk -F'"' '{print $2}')
-            echo "$svc,$RC_TAG" >> rc_list.csv
-          done
-          cat rc_list.csv
-
-      # 3) Configure AWS so we can retag in ECR
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -41,39 +27,60 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ env.AWS_REGION }}
 
-      # 4) Retag each RC → GA in ECR
-      - name: Retag RC images to GA
+      - name: Retag latest RC images to GA (skip if already exists)
         run: |
           set -euo pipefail
-          tail -n +2 rc_list.csv | while IFS=, read svc rc; do
-            echo "🔖 Retagging $svc:$rc → $svc:${GA_TAG}"
+
+          for svc in $SERVICES; do
+            echo "🔍 Checking for existing GA tag $GA_TAG in $svc..."
+            GA_EXISTS=$(aws ecr list-images \
+              --repository-name "$svc" \
+              --filter tagStatus=TAGGED \
+              --query "imageIds[?imageTag=='${GA_TAG}']" \
+              --output json)
+
+            if [ "$GA_EXISTS" != "[]" ]; then
+              echo "✅ $svc:$GA_TAG already exists – skipping retag."
+              continue
+            fi
+
+            echo "⏳ Finding latest RC tag for $svc from UAT values..."
+            # Read the RC directly from your UAT values.yaml
+            RC_TAG=$(grep '^  tag:' environments/uat/$svc/values.yaml \
+                     | awk -F'"' '{print $2}')
+            if [[ ! $RC_TAG =~ ^${GA_TAG}-rc\.[0-9]+$ ]]; then
+              echo "❌ Unexpected RC tag '$RC_TAG' for $svc – aborting."
+              exit 1
+            fi
+
+            echo "🔖 Retagging $svc:$RC_TAG → $svc:$GA_TAG"
             aws ecr batch-get-image \
               --repository-name "$svc" \
-              --image-ids imageTag="$rc" \
-              --query 'images[0].imageManifest' \
-              --output text > manifest.json
+              --image-ids imageTag="$RC_TAG" \
+              --query 'images[0].imageManifest' --output text \
+              > manifest.json
 
             aws ecr put-image \
               --repository-name "$svc" \
-              --image-tag "${GA_TAG}" \
+              --image-tag "$GA_TAG" \
               --image-manifest file://manifest.json
           done
 
-      # 5) Install and authenticate GitHub CLI
       - name: Install GitHub CLI
         run: |
           sudo apt-get update -y
           sudo apt-get install -y gh
+
       - name: Authenticate GH CLI
         run: echo "${{ secrets.GH_PAT }}" | gh auth login --with-token
 
-      # 6) Bump prod overlay and open a PR
       - name: Bump prod values & open PR
         run: |
           git checkout -b bump-prod-${GA_TAG}
 
           for svc in $SERVICES; do
             FILE=environments/prod/$svc/values.yaml
+            echo "✏️  Updating $FILE → tag: ${GA_TAG}"
             sed -i "s|tag:.*|tag: \"${GA_TAG}\"|" "$FILE"
           done
 
