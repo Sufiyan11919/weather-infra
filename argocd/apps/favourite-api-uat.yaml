@@ -1,3 +1,4 @@
+#weather-infra/argocd/apps/favourite-api-uat.yaml
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -9,7 +10,7 @@ spec:
     server: https://kubernetes.default.svc
     namespace: uat
   source:
-    repoURL: https://github.com/your-org/weather-infra.git
+    repoURL: https://github.com/Sufiyan11919/weather-infra.git
     targetRevision: main
     path: helm/charts/umbrella
     helm:
