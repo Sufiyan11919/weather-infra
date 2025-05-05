@@ -1,10 +1,10 @@
 region = "us-east-2"
 
-# the VPC that already exists in us‑east‑2
-vpc_id = "vpc-0abc123de456f7890"
+# straight from the screenshot
+vpc_id = "vpc-0fb53c376d317546a"
 
-# two public (or private‑with‑NAT) subnets in that VPC, in two AZs
 subnet_ids = [
-  "subnet-0123456789abcdef0",
-  "subnet-0456789abcdef0123"
+  "subnet-01e57530dab3c1fa4",  # us-east-2a
+  "subnet-0b7ce4abfdd23d3a",   # us-east-2b  ← type carefully
+  "subnet-0742bb02a63325a28a", # us-east-2c
 ]
