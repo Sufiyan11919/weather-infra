@@ -72,7 +72,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           title: Promote all services → ${{ env.GA_TAG }}
-          commit-message: chore: promote services → ${{ env.GA_TAG }}
-          head: bump-prod-${{ env.GA_TAG }}
+          commit-message: "chore: promote services → ${{ env.GA_TAG }}"
+          branch: bump-prod-${{ env.GA_TAG }}
           base: main
           body: Automated GA promotion from infra
