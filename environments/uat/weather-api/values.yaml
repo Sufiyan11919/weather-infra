@@ -2,5 +2,12 @@ image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-api
   tag: latest
 
+service:
+  port: 4000        # keep if the container listens on 4000
+
 ingress:
   enabled: false
+
+extraEnv:            # ← add this block
+  - name: OPENWEATHER_API_KEY
+    value: "0e97eb3b6d3e77247e2c5706ed44a0bb"
