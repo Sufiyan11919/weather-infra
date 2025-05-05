@@ -3,11 +3,12 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: weather-api-uat
+  namespace: argocd          # <- Argo CD watches here
 spec:
-  destination:
-    namespace: uat
-    server: https://kubernetes.default.svc
   project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: uat           # <- where the app will run
   source:
     repoURL: https://github.com/Sufiyan11919/weather-infra.git
     targetRevision: main
@@ -19,3 +20,6 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
