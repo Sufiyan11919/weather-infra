@@ -1,3 +1,4 @@
+#weather-infra/environments/uat/weather-frontend/values.yaml
 image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-frontend
   tag: "v1.4.0-rc.5"
