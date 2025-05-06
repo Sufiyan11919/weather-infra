@@ -3,7 +3,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: favourite-api-uat
-  namespace: argocd-uat
+  namespace: argocd
 spec:
   destination:
     server: https://kubernetes.default.svc
