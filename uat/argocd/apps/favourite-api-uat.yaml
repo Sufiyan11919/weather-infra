@@ -13,7 +13,7 @@ spec:
     path: uat/helm/umbrella
     helm:
       valueFiles:
-        - uat/environments/favourite-api/values.yaml
+        - ../../environments/favourite-api/values.yaml
   syncPolicy:
     automated:
       prune: true

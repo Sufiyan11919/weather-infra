@@ -13,7 +13,7 @@ spec:
     path: uat/helm/umbrella
     helm:
       valueFiles:
-        - uat/environments/weather-frontend/values.yaml
+        - ../../environments/weather-frontend/values.yaml
   syncPolicy:
     automated:
       prune: true
