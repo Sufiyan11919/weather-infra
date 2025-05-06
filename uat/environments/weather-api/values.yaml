@@ -1,4 +1,4 @@
-#weather-infra/environments/uat/weather-api/values.yaml
+#weather-infra/uat/environments/weather-api/values.yaml
 image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-api
   tag: "v1.4.0-rc.4"
