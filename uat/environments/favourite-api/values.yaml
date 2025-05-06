@@ -3,5 +3,8 @@ image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/favourite-api
   tag: "v1.4.0-rc.4"
 
+service:
+  port: 4000          # ← add the port the container listens on
+
 ingress:
-  enabled: false        # ← disable ALB/Ingress for UAT
+  enabled: false
