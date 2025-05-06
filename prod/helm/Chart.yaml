@@ -1,0 +1,5 @@
+apiVersion: v2
+name: weather-umbrella
+version: 0.1.0
+appVersion: "1.0"
+description: Full production chart with Argo Rollout & ALB ingress

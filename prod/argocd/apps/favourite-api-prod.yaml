@@ -1,23 +1,20 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: weather-frontend-uat
-  namespace: argocd
+  name: favourite-api-prod
+  namespace: argocd-prod
 spec:
-  project: default
   destination:
     server: https://kubernetes.default.svc
-    namespace: uat
+    namespace: prod
   source:
     repoURL: https://github.com/Sufiyan11919/weather-infra.git
     targetRevision: main
-    path: helm/charts/umbrella
+    path: prod/helm/umbrella
     helm:
       valueFiles:
-        - ../../../environments/uat/weather-frontend/values.yaml
+        - prod/environments/favourite-api/values.yaml
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-    syncOptions:
-      - CreateNamespace=true

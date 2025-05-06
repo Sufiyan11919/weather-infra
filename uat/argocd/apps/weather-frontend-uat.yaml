@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: weather-frontend-uat
+  namespace: argocd-uat
+spec:
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: uat
+  source:
+    repoURL: https://github.com/Sufiyan11919/weather-infra.git
+    targetRevision: main
+    path: uat/helm/umbrella
+    helm:
+      valueFiles:
+        - uat/environments/weather-frontend/values.yaml
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
