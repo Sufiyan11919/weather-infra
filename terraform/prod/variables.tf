@@ -1,3 +1,4 @@
+#terraform/variable.tf
 variable "region" {
   description = "AWS region for the PROD workspace"
   type        = string
