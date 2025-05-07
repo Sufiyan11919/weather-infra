@@ -2,7 +2,7 @@ name: Promote GA via ECR
 
 on:
   push:
-    # only non-rc tags, e.g. v1.4.0
+    # runs only for GA tags such as v2.0.0 (⚠️ no “-rc”)
     tags:
       - 'v*.*.*'
 
@@ -10,83 +10,86 @@ env:
   AWS_REGION: us-east-2
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   SERVICES: favourite-api weather-api weather-frontend
-  GA_TAG: ${{ github.ref_name }}       # e.g. "v1.4.0"
+  GA_TAG: ${{ github.ref_name }}            # e.g. "v2.0.0"
 
 jobs:
   retag-and-bump:
     runs-on: ubuntu-latest
+
     steps:
-      # 1) Checkout infra repo to read UAT values
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+    #────────────────── 1. checkout infra repo ──────────────────────────
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-      # 2) Configure AWS so we can talk to ECR
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ env.AWS_REGION }}
+    #────────────────── 2. AWS creds for ECR access ─────────────────────
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region:            ${{ env.AWS_REGION }}
 
-      # 3) Retag RC → GA, skipping services that already have GA
-      - name: Retag RC images to GA (skip existing)
-        run: |
-          set -euo pipefail
+    #────────────────── 3. Re-tag RC → GA in ECR (skip if GA exists) ────
+    - name: Retag RC images to GA (skip existing)
+      run: |
+        set -euo pipefail
 
-          for svc in $SERVICES; do
-            echo "🔍 Checking if $svc already has GA tag ${GA_TAG}..."
-            GA_EXISTS=$(aws ecr list-images \
-              --repository-name "$svc" \
-              --filter tagStatus=TAGGED \
-              --query "contains(imageIds[].imageTag, '${GA_TAG}')" \
-              --output text)
+        for svc in $SERVICES; do
+          echo "🔍 Checking if $svc already has GA tag ${GA_TAG}..."
+          GA_EXISTS=$(aws ecr list-images \
+            --repository-name "$svc" \
+            --filter tagStatus=TAGGED \
+            --query "contains(imageIds[].imageTag, '${GA_TAG}')" \
+            --output text)
 
-            if [ "$GA_EXISTS" = "True" ] || [ "$GA_EXISTS" = "true" ]; then
-              echo "✅ $svc:$GA_TAG already exists—skipping retag."
-              continue
-            fi
+          if [ "$GA_EXISTS" = "True" ] || [ "$GA_EXISTS" = "true" ]; then
+            echo "✅ $svc:$GA_TAG already exists—skipping retag."
+            continue
+          fi
 
-            echo "⏳ Extracting RC tag from UAT overlay for $svc..."
-            RC_TAG=$(grep '^  tag:' environments/uat/$svc/values.yaml \
-                     | awk -F'"' '{print $2}')
+          echo "⏳ Extracting RC tag from UAT overlay for $svc..."
+          RC_TAG=$(grep '^  tag:' uat/environments/$svc/values.yaml \
+                   | awk -F'"' '{print $2}')
 
-            if [[ ! "$RC_TAG" =~ ^${GA_TAG}-rc\.[0-9]+$ ]]; then
-              echo "❌ Unexpected RC tag '$RC_TAG' for $svc—aborting."
-              exit 1
-            fi
+          if [[ ! "$RC_TAG" =~ ^${GA_TAG}-rc\.[0-9]+$ ]]; then
+            echo "❌ Unexpected RC tag '$RC_TAG' for $svc—aborting."
+            exit 1
+          fi
 
-            echo "🔖 Retagging $svc:$RC_TAG → $svc:$GA_TAG"
-            aws ecr batch-get-image \
-              --repository-name "$svc" \
-              --image-ids imageTag="$RC_TAG" \
-              --query 'images[0].imageManifest' --output text \
-              > manifest.json
+          echo "🔖 Retagging $svc:$RC_TAG → $svc:$GA_TAG"
+          aws ecr batch-get-image \
+            --repository-name "$svc" \
+            --image-ids imageTag="$RC_TAG" \
+            --query 'images[0].imageManifest' --output text \
+            > manifest.json
 
-            aws ecr put-image \
-              --repository-name "$svc" \
-              --image-tag "$GA_TAG" \
-              --image-manifest file://manifest.json
-          done
+          aws ecr put-image \
+            --repository-name "$svc" \
+            --image-tag "$GA_TAG" \
+            --image-manifest file://manifest.json
+        done
 
-      # 4) Create bump branch & update prod overlays
-      - name: Create bump branch & update prod overlays
-        run: |
-          git checkout -b bump-prod-${GA_TAG}
-          for svc in $SERVICES; do
-            FILE=environments/prod/$svc/values.yaml
-            echo "✏️  Updating $FILE → tag: ${GA_TAG}"
-            sed -i "s|tag:.*|tag: \"${GA_TAG}\"|" "$FILE"
-          done
-          git commit -am "chore: promote services → ${GA_TAG}"
+    #────────────────── 4. Bump prod overlays to GA tag ─────────────────
+    - name: Create bump branch & update prod overlays
+      run: |
+        git checkout -b bump-prod-${GA_TAG}
 
-      # 5) Open Pull Request via peter-evans/create-pull-request
-      - name: Open Pull Request
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          title: "Promote all services → ${GA_TAG}"
-          commit-message: "chore: promote services → ${GA_TAG}"
-          body: "Automated GA promotion from infra"
-          branch: "bump-prod-${GA_TAG}"
-          base: main
+        for svc in $SERVICES; do
+          FILE=prod/environments/$svc/values.yaml
+          echo "✏️  Updating $FILE → tag: ${GA_TAG}"
+          sed -i "s|tag:.*|tag: \"${GA_TAG}\"|" "$FILE"
+        done
+
+        git commit -am "chore: promote services → ${GA_TAG}"
+
+    #────────────────── 5. Open PR with peter-evans/create-pull-request ─
+    - name: Open Pull Request
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        title: "Promote all services → ${GA_TAG}"
+        commit-message: "chore: promote services → ${GA_TAG}"
+        body: "Automated GA promotion from infra"
+        branch: "bump-prod-${GA_TAG}"
+        base: main
