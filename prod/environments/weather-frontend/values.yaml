@@ -2,7 +2,7 @@
 nameOverride: weather-frontend
 
 useRollout: true
-replicaCount: 3
+replicaCount: 2
 
 image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-frontend
