@@ -1,6 +1,6 @@
 # weather-infra/environments/weather-api/values.yaml
 useRollout: true
-replicaCount: 2
+replicaCount: 3
 
 image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-api

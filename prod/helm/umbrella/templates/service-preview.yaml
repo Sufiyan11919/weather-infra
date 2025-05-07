@@ -1,3 +1,4 @@
+#weather-infra/prod/helm/umbrella/templates/service-preview.yaml
 {{- if .Values.useRollout }}
 apiVersion: v1
 kind: Service

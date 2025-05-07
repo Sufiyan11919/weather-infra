@@ -2,7 +2,7 @@
 nameOverride: weather-frontend
 
 useRollout: true
-replicaCount: 2
+replicaCount: 3
 
 image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-frontend
@@ -15,7 +15,7 @@ service:
     service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
 
 ingress:
-  enabled: true                     # keep Ingress if you want, otherwise set false
+  enabled: false                     # keep Ingress if you want, otherwise set false
   className: nginx
   activeHost:  weather.prod.example.com
   previewHost: weather-preview.prod.example.com
