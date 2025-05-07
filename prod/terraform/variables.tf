@@ -1,15 +1,10 @@
-#terraform/variable.tf
 variable "region" {
-  description = "AWS region for the PROD workspace"
+  description = "AWS region"
   type        = string
 }
 
-variable "vpc_id" {
-  description = "VPC ID where the EKS cluster will live"
+variable "vpc_cidr" {
+  description = "CIDR block for the dedicated Prod VPC"
   type        = string
-}
-
-variable "subnet_ids" {
-  description = "List of subnet IDs"
-  type        = list(string)
+  default     = "10.21.0.0/16"
 }
