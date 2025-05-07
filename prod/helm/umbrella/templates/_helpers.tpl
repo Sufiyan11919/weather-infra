@@ -1,23 +1,5 @@
-{{- if .Values.ingress.enabled }}
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: {{ include "weather.fullname" . }}
-  annotations:
-    kubernetes.io/ingress.class: alb
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/group.name: weather-prod
-spec:
-  rules:
-  - host: {{ .Values.ingress.activeHost }}          # ← uses activeHost
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: {{ include "weather.fullname" . }}
-            port:
-              number: {{ .Values.service.port }}
-{{- end }}
+{{/* helpers only -- no Kubernetes yaml here */}}
+
+{{- define "weather.fullname" -}}
+{{- default .Release.Name .Values.nameOverride | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
