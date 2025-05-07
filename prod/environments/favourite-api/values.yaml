@@ -19,3 +19,4 @@ ingress:
 rollout:
   autoPromotionEnabled: false      # flip to true if you want auto-promote
 # ──────────────────────────────────────────────────────
+nameOverride: favourite-api

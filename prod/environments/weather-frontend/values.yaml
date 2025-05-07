@@ -17,3 +17,5 @@ ingress:
 
 rollout:
   autoPromotionEnabled: false
+
+nameOverride: weather-frontend
