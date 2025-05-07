@@ -1,4 +1,4 @@
-#weather-infra/environments/favourite-api/values.yaml
+# weather-infra/environments/favourite-api/values.yaml
 useRollout: true
 replicaCount: 3
 
@@ -14,3 +14,8 @@ ingress:
   className: nginx
   activeHost:  favourite-api.prod.example.com
   previewHost: favourite-api-preview.prod.example.com
+
+# ── NEW ───────────────────────────────────────────────
+rollout:
+  autoPromotionEnabled: false      # flip to true if you want auto-promote
+# ──────────────────────────────────────────────────────

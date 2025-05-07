@@ -1,4 +1,4 @@
-#weather-infra/environments/favourite-api/values.yaml
+# weather-infra/environments/weather-frontend/values.yaml
 useRollout: true
 replicaCount: 3
 
@@ -14,3 +14,6 @@ ingress:
   className: nginx
   activeHost:  weather.prod.example.com
   previewHost: weather-preview.prod.example.com
+
+rollout:
+  autoPromotionEnabled: false

@@ -1,4 +1,4 @@
-#weather-infra/environments/favourite-api/values.yaml
+# weather-infra/environments/weather-api/values.yaml
 useRollout: true
 replicaCount: 3
 
@@ -11,10 +11,13 @@ service:
 
 ingress:
   enabled: true
-  className: nginx               # or alb, traefik…
+  className: nginx
   activeHost:  weather-api.prod.example.com
   previewHost: weather-api-preview.prod.example.com
 
 extraEnv:
   - name: OPENWEATHER_API_KEY
     value: "${OPENWEATHER_API_KEY}"
+
+rollout:
+  autoPromotionEnabled: false
