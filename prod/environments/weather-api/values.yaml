@@ -21,5 +21,5 @@ extraEnv:
 
 rollout:
   autoPromotionEnabled: false
-  
-nameOverride: weather-api
+
+nameOverride: weather-api-uat
