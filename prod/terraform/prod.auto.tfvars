@@ -1,4 +1,6 @@
 # prod.auto.tfvars
+region = "us-east-2"
+
 vpc_id = "vpc-0fb53c376d317546a"
 
 subnet_ids = [

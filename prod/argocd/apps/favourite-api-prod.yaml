@@ -10,10 +10,11 @@ spec:
   source:
     repoURL: https://github.com/Sufiyan11919/weather-infra.git
     targetRevision: main
+    # <── identical to UAT, just under prod/ ──>
     path: prod/helm/umbrella
     helm:
       valueFiles:
-        - prod/environments/favourite-api/values.yaml
+        - ../../environments/favourite-api/values.yaml   # ★ SAME 2-level path as UAT
   syncPolicy:
     automated:
       prune: true

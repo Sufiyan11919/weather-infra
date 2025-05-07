@@ -10,17 +10,13 @@ terraform {
   }
 }
 
-# Provider for the prod workspace
-provider "aws" {
-  region = var.region          # defined in prod.auto.tfvars
-}
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "20.0.0"
 
-  # hard-coded so it never collides with the UAT cluster
-  cluster_name    = "weather-prod"
+
+  cluster_name    = "weather-${terraform.workspace}"
   cluster_version = "1.29"
 
   vpc_id     = var.vpc_id       # supplied in prod.auto.tfvars
@@ -37,7 +33,7 @@ module "eks" {
   }
 
   tags = {
-    Environment = "prod"
+    Environment = "erraform.workspace"
     Project     = "weather-pro"
   }
 }
