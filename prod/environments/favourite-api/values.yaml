@@ -4,7 +4,7 @@ replicaCount: 3
 
 image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/favourite-api
-  tag: "v1.4.0"
+  tag: "v2.0.0"
 
 service:
   port: 4000
