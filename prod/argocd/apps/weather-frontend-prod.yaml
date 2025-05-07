@@ -5,6 +5,7 @@ metadata:
   name: weather-frontend-prod
   namespace: argocd
 spec:
+  project: default
   destination:
     server: https://kubernetes.default.svc
     namespace: prod
