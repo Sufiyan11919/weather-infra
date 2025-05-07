@@ -2,7 +2,7 @@ name: Promote GA via ECR
 
 on:
   push:
-    # runs only for GA tags such as v2.0.0 (⚠️ no “-rc”)
+    # GA tags only (no “-rc”)
     tags:
       - 'v*.*.*'
 
@@ -10,19 +10,19 @@ env:
   AWS_REGION: us-east-2
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   SERVICES: favourite-api weather-api weather-frontend
-  GA_TAG: ${{ github.ref_name }}            # e.g. "v2.0.0"
+  GA_TAG: ${{ github.ref_name }}            # e.g. v2.0.0
 
 jobs:
   retag-and-bump:
     runs-on: ubuntu-latest
 
     steps:
-    #────────────────── 1. checkout infra repo ──────────────────────────
+    # ────────────────────────────── 1. checkout infra repo ──────────────────────────────
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
-    #────────────────── 2. AWS creds for ECR access ─────────────────────
+    # ────────────────────────────── 2. AWS creds for ECR ────────────────────────────────
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -30,7 +30,7 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region:            ${{ env.AWS_REGION }}
 
-    #────────────────── 3. Re-tag RC → GA in ECR (skip if GA exists) ────
+    # ────────────────────────────── 3. RC → GA retag in ECR ─────────────────────────────
     - name: Retag RC images to GA (skip existing)
       run: |
         set -euo pipefail
@@ -70,10 +70,14 @@ jobs:
             --image-manifest file://manifest.json
         done
 
-    #────────────────── 4. Bump prod overlays to GA tag ─────────────────
+    # ────────────────────────────── 4. bump prod overlays ───────────────────────────────
     - name: Create bump branch & update prod overlays
       run: |
         git checkout -b bump-prod-${GA_TAG}
+
+        # git identity required for commits in CI
+        git config --global user.name  "promotion-bot"
+        git config --global user.email "bot@example.com"
 
         for svc in $SERVICES; do
           FILE=prod/environments/$svc/values.yaml
@@ -83,7 +87,7 @@ jobs:
 
         git commit -am "chore: promote services → ${GA_TAG}"
 
-    #────────────────── 5. Open PR with peter-evans/create-pull-request ─
+    # ────────────────────────────── 5. open pull-request ────────────────────────────────
     - name: Open Pull Request
       uses: peter-evans/create-pull-request@v5
       with:
