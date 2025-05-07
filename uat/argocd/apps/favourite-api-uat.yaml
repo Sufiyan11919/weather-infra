@@ -5,6 +5,7 @@ metadata:
   name: favourite-api-uat
   namespace: argocd
 spec:
+  project: default                     # ← added
   destination:
     server: https://kubernetes.default.svc
     namespace: uat
