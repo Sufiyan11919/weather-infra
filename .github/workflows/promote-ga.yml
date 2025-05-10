@@ -10,19 +10,20 @@ env:
   AWS_REGION: us-east-2
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   SERVICES: favourite-api weather-api weather-frontend
-  GA_TAG: ${{ github.ref_name }}            # e.g. v2.0.0
+  GA_TAG: ${{ github.ref_name }}         # e.g. v3.1.2
 
 jobs:
   retag-and-bump:
     runs-on: ubuntu-latest
 
     steps:
-    # ────────────────────────────── 1. checkout infra repo ──────────────────────────────
-    - uses: actions/checkout@v4
+    # ────────── 1. checkout infra repo ──────────
+    - name: Checkout infra repo
+      uses: actions/checkout@v4
       with:
-        fetch-depth: 0
+        fetch-depth: 0               # we need full history for new branches
 
-    # ────────────────────────────── 2. AWS creds for ECR ────────────────────────────────
+    # ────────── 2. AWS creds for ECR ────────────
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -30,52 +31,50 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region:            ${{ env.AWS_REGION }}
 
-    # ────────────────────────────── 3. RC → GA retag in ECR ─────────────────────────────
+    # ────────── 3. RC → GA retag in ECR ─────────
     - name: Retag RC images to GA (skip existing)
+      shell: bash
       run: |
         set -euo pipefail
 
         for svc in $SERVICES; do
-          echo "🔍 Checking if $svc already has GA tag ${GA_TAG}..."
-          GA_EXISTS=$(aws ecr list-images \
-            --repository-name "$svc" \
-            --filter tagStatus=TAGGED \
-            --query "contains(imageIds[].imageTag, '${GA_TAG}')" \
-            --output text)
-
-          if [ "$GA_EXISTS" = "True" ] || [ "$GA_EXISTS" = "true" ]; then
-            echo "✅ $svc:$GA_TAG already exists—skipping retag."
+          echo "🔍 Checking if $svc already has GA tag ${GA_TAG}…"
+          if aws ecr list-images \
+               --repository-name "$svc" \
+               --filter tagStatus=TAGGED \
+               --query "contains(imageIds[].imageTag, '${GA_TAG}')" \
+               --output text | grep -qi true; then
+            echo "✅ $svc:${GA_TAG} already exists—skipping."
             continue
           fi
 
-          echo "⏳ Extracting RC tag from UAT overlay for $svc..."
-          RC_TAG=$(grep '^  tag:' uat/environments/$svc/values.yaml \
-                   | awk -F'"' '{print $2}')
+          echo "⏳ Pulling RC tag from UAT overlay…"
+          RC_TAG=$(grep '^  tag:' uat/environments/$svc/values.yaml | awk -F'"' '{print $2}')
 
-          if [[ ! "$RC_TAG" =~ ^${GA_TAG}-rc\.[0-9]+$ ]]; then
-            echo "❌ Unexpected RC tag '$RC_TAG' for $svc—aborting."
-            exit 1
-          fi
+          [[ "$RC_TAG" =~ ^${GA_TAG}-rc\.[0-9]+$ ]] \
+            || { echo "❌ Unexpected RC tag '$RC_TAG' for $svc"; exit 1; }
 
           echo "🔖 Retagging $svc:$RC_TAG → $svc:$GA_TAG"
           aws ecr batch-get-image \
             --repository-name "$svc" \
             --image-ids imageTag="$RC_TAG" \
-            --query 'images[0].imageManifest' --output text \
-            > manifest.json
+            --query 'images[0].imageManifest' --output text > manifest.json
 
           aws ecr put-image \
             --repository-name "$svc" \
             --image-tag "$GA_TAG" \
             --image-manifest file://manifest.json
+
+          rm -f manifest.json
         done
 
-    # ────────────────────────────── 4. bump prod overlays ───────────────────────────────
+    # ────────── 4. bump prod overlays ───────────
     - name: Create bump branch & update prod overlays
+      shell: bash
       run: |
-        git checkout -b bump-prod-${GA_TAG}
+        set -euo pipefail
 
-        # git identity required for commits in CI
+        git checkout -b bump-prod-${GA_TAG}
         git config --global user.name  "promotion-bot"
         git config --global user.email "bot@example.com"
 
@@ -86,14 +85,15 @@ jobs:
         done
 
         git commit -am "chore: promote services → ${GA_TAG}"
+        git push -u origin bump-prod-${GA_TAG}
 
-    # ────────────────────────────── 5. open pull-request ────────────────────────────────
+    # ────────── 5. open pull‑request ────────────
     - name: Open Pull Request
       uses: peter-evans/create-pull-request@v5
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        title: "Promote all services → ${GA_TAG}"
-        commit-message: "chore: promote services → ${GA_TAG}"
-        body: "Automated GA promotion from infra"
-        branch: "bump-prod-${GA_TAG}"
-        base: main
+        token:           ${{ secrets.GITHUB_TOKEN }}
+        title:           "Promote all services → ${{ env.GA_TAG }}"
+        commit-message:  "chore: promote services → ${{ env.GA_TAG }}"
+        body:            "Automated GA promotion from infra"
+        branch:          "bump-prod-${{ env.GA_TAG }}"   # ← interpolated
+        base:            main
