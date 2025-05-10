@@ -6,7 +6,7 @@ replicaCount: 3
 
 image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-frontend
-  tag: "v2.0.0"
+  tag: "v3.1.8"
 
 service:
   type: LoadBalancer                # ← expose through an ELB/NLB
