@@ -9,7 +9,7 @@ service:
 ingress:
   enabled: false
 
-extraEnv:        # ← must start at column 1
+extraEnv:
   - name: WEATHER_API_HOST
     value: weather-api-uat
   - name: FAVOURITE_API_HOST
