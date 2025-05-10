@@ -2,8 +2,14 @@
 image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-frontend
   tag: "v4.0.0-rc.1"
-service:
-  port: 80               # frontend listens on 80
 
+service:
+  port: 80
 ingress:
   enabled: false
+
+
+  - name: WEATHER_API_HOST
+    value: weather-api-uat
+  - name: FAVOURITE_API_HOST
+    value: favourite-api-uat
