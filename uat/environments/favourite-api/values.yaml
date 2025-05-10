@@ -8,3 +8,9 @@ service:
 
 ingress:
   enabled: false
+
+extraEnv:
+  - name: WEATHER_API_HOST
+    value: weather-api-uat
+  - name: FAVOURITE_API_HOST
+    value: favourite-api-uat
