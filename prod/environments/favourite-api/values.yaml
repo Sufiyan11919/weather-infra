@@ -1,21 +1,31 @@
 #weather-infra/environments/favourite-api/values.yaml
-# ---------- favourite-api · PROD values ----------
+# ---------- weather-frontend · PROD values ----------
 useRollout: true
 replicaCount: 3
 
 image:
-  repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/favourite-api
-  tag: "v3.1.8"
+  repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-frontend
+  tag: "v3.1.9"          # <— new image tag that reads env-vars
 
 service:
-  port: 4000
+  type: LoadBalancer
+  port: 80
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
 
 ingress:
   enabled: false
   className: nginx
-  activeHost: favourite-api.prod.example.com
-  previewHost: favourite-api-preview.prod.example.com
+  activeHost: weather.prod.example.com
+  previewHost: weather-preview.prod.example.com
 
 rollout:
-  autoPromotionEnabled: false      # manual gate
-  scaleDownDelaySeconds: 30        # old pods culled 30 s after promotion
+  autoPromotionEnabled: false
+  scaleDownDelaySeconds: 30
+
+# per-env backend hosts (prod points at *-prod services)
+extraEnv:
+  - name: WEATHER_API_HOST
+    value: weather-api-prod
+  - name: FAVOURITE_API_HOST
+    value: favourite-api-prod

@@ -5,7 +5,7 @@ replicaCount: 3
 
 image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-frontend
-  tag: "v3.1.8"
+  tag: "v3.1.9"                # ← new image that reads env-vars for backends
 
 service:
   type: LoadBalancer
@@ -22,3 +22,10 @@ ingress:
 rollout:
   autoPromotionEnabled: false
   scaleDownDelaySeconds: 30
+
+# per-environment backend hosts (prod points at *-prod services)
+extraEnv:
+  - name: WEATHER_API_HOST
+    value: weather-api-prod
+  - name: FAVOURITE_API_HOST
+    value: favourite-api-prod

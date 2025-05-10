@@ -5,7 +5,7 @@ replicaCount: 3
 
 image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-api
-  tag: "v3.1.8"
+  tag: "v3.1.9"                # ← keep the working tag; change only when you
 
 service:
   port: 4000
