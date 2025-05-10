@@ -18,7 +18,7 @@ ingress:
 
 extraEnv:
   - name: OPENWEATHER_API_KEY
-    value: "${OPENWEATHER_API_KEY}"
+    value: "0e97eb3b6d3e77247e2c5706ed44a0bb"
 
 rollout:
   autoPromotionEnabled: false
