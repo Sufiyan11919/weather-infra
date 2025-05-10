@@ -1,6 +1,10 @@
 # .github/workflows/promote-via-tag.yml
 name: Promote via Git Tag
 
+# 1. Give the workflow write rights to repo contents
+permissions:
+  contents: write
+
 on:
   push:
     tags:
@@ -15,14 +19,16 @@ env:
 jobs:
   promote:
     runs-on: ubuntu-latest
+
     steps:
-      # 1. Checkout full repo
+      # 2. Checkout full repo + allow pushes
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      # 2. AWS creds (for ECR)
+      # 3. AWS creds (for ECR)
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -30,7 +36,7 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region:            ${{ env.AWS_REGION }}
 
-      # 3. Retag existing RC images in ECR to the new GA tag
+      # 4. Retag existing RC images in ECR to the new GA tag
       - name: Retag RC → GA in ECR
         shell: bash
         run: |
@@ -44,31 +50,26 @@ jobs:
               echo "$svc:${GA_TAG} exists—skipping."
               continue
             fi
-
-            # pull the RC tag from your UAT overlay
             RC_PATH=uat/environments/$svc/values.yaml
             echo "Reading RC tag from $RC_PATH"
             RC_TAG=$(grep '^  tag:' "$RC_PATH" | awk -F'"' '{print $2}')
-
             aws ecr batch-get-image \
               --repository-name "$svc" \
               --image-ids imageTag="$RC_TAG" \
               --query 'images[0].imageManifest' \
               --output text > manifest.json
-
             aws ecr put-image \
               --repository-name "$svc" \
               --image-tag "$GA_TAG" \
               --image-manifest file://manifest.json
-
             rm manifest.json
           done
 
-      # 4. Create a new branch for the promotion
+      # 5. Create a new branch for the promotion
       - name: Create branch
         run: git checkout -b promote-${GA_TAG}
 
-      # 5. Update image tags in each prod environment’s values.yaml
+      # 6. Update image tags in each prod environment’s values.yaml
       - name: Bump image tags in prod overlays
         run: |
           for svc in $SERVICES; do
@@ -77,16 +78,16 @@ jobs:
             sed -i "s|tag: \".*\"|tag: \"${GA_TAG}\"|" "$file"
           done
 
-      # 6. Commit & push that branch
+      # 7. Commit & push that branch
       - name: Commit & push
         run: |
           git config user.name  "promotion-bot"
           git config user.email "bot@example.com"
           git add prod/environments/*/values.yaml
           git commit -m "chore: bump prod image tags → ${GA_TAG}"
-          git push -u origin promote-${GA_TAG}
+          git push --set-upstream origin promote-${GA_TAG}
 
-      # 7. Open a PR from promote-<tag> into main
+      # 8. Open a PR from promote-<tag> into main
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v5
         with:
