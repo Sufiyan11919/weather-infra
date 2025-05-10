@@ -1,8 +1,8 @@
-name: Promote GA via ECR
+# .github/workflows/promote-via-tag.yml
+name: Promote via Git Tag
 
 on:
   push:
-    # GA tags only (no “-rc”)
     tags:
       - 'v*.*.*'
 
@@ -10,90 +10,95 @@ env:
   AWS_REGION: us-east-2
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   SERVICES: favourite-api weather-api weather-frontend
-  GA_TAG: ${{ github.ref_name }}         # e.g. v3.1.2
+  GA_TAG: ${{ github.ref_name }}   # e.g. v2.0.0
 
 jobs:
-  retag-and-bump:
+  promote:
     runs-on: ubuntu-latest
 
     steps:
-    # ────────── 1. checkout infra repo ──────────
-    - name: Checkout infra repo
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0               # we need full history for new branches
+      # 1. Checkout full repo
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    # ────────── 2. AWS creds for ECR ────────────
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region:            ${{ env.AWS_REGION }}
+      # 2. AWS creds (needed for ECR operations)
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
 
-    # ────────── 3. RC → GA retag in ECR ─────────
-    - name: Retag RC images to GA (skip existing)
-      shell: bash
-      run: |
-        set -euo pipefail
+      # 3. Retag existing RC images in ECR to the new GA tag
+      - name: Retag RC → GA in ECR
+        shell: bash
+        run: |
+          set -euo pipefail
+          for svc in $SERVICES; do
+            if aws ecr list-images \
+                 --repository-name "$svc" \
+                 --filter tagStatus=TAGGED \
+                 --query "contains(imageIds[].imageTag, '${GA_TAG}')" \
+                 --output text | grep -qi true; then
+              echo "$svc:${GA_TAG} exists—skipping."
+              continue
+            fi
 
-        for svc in $SERVICES; do
-          echo "🔍 Checking if $svc already has GA tag ${GA_TAG}…"
-          if aws ecr list-images \
-               --repository-name "$svc" \
-               --filter tagStatus=TAGGED \
-               --query "contains(imageIds[].imageTag, '${GA_TAG}')" \
-               --output text | grep -qi true; then
-            echo "✅ $svc:${GA_TAG} already exists—skipping."
-            continue
-          fi
+            # pull the RC tag from your UAT overlay
+            RC_TAG=$(grep '^  tag:' \
+                      environments/$svc/values.yaml \
+                     | awk -F'"' '{print $2}')
 
-          echo "⏳ Pulling RC tag from UAT overlay…"
-          RC_TAG=$(grep '^  tag:' uat/environments/$svc/values.yaml | awk -F'"' '{print $2}')
+            aws ecr batch-get-image \
+              --repository-name "$svc" \
+              --image-ids imageTag="$RC_TAG" \
+              --query 'images[0].imageManifest' \
+              --output text > manifest.json
 
-          [[ "$RC_TAG" =~ ^${GA_TAG}-rc\.[0-9]+$ ]] \
-            || { echo "❌ Unexpected RC tag '$RC_TAG' for $svc"; exit 1; }
+            aws ecr put-image \
+              --repository-name "$svc" \
+              --image-tag "$GA_TAG" \
+              --image-manifest file://manifest.json
 
-          echo "🔖 Retagging $svc:$RC_TAG → $svc:$GA_TAG"
-          aws ecr batch-get-image \
-            --repository-name "$svc" \
-            --image-ids imageTag="$RC_TAG" \
-            --query 'images[0].imageManifest' --output text > manifest.json
+            rm manifest.json
+          done
 
-          aws ecr put-image \
-            --repository-name "$svc" \
-            --image-tag "$GA_TAG" \
-            --image-manifest file://manifest.json
+      # 4. Create a new branch for the promotion
+      - name: Create branch
+        run: git checkout -b promote-${GA_TAG}
 
-          rm -f manifest.json
-        done
+      # 5. Update image tags in each environment’s values.yaml
+      - name: Bump image tags in values.yaml
+        run: |
+          for svc in $SERVICES; do
+            file=environments/$svc/values.yaml
+            echo "Updating $file → tag: \"${GA_TAG}\""
+            sed -i "s|tag: \".*\"|tag: \"${GA_TAG}\"|" "$file"
+          done
 
-    # ────────── 4. bump prod overlays ───────────
-    - name: Create bump branch & update prod overlays
-      shell: bash
-      run: |
-        set -euo pipefail
+      # 6. Commit & push that branch
+      - name: Commit & push
+        run: |
+          git config user.name  "promotion-bot"
+          git config user.email "bot@example.com"
+          git add environments/*/values.yaml
+          git commit -m "chore: bump image tags → ${GA_TAG}"
+          git push -u origin promote-${GA_TAG}
 
-        git checkout -b bump-prod-${GA_TAG}
-        git config --global user.name  "promotion-bot"
-        git config --global user.email "bot@example.com"
-
-        for svc in $SERVICES; do
-          FILE=prod/environments/$svc/values.yaml
-          echo "✏️  Updating $FILE → tag: ${GA_TAG}"
-          sed -i "s|tag:.*|tag: \"${GA_TAG}\"|" "$FILE"
-        done
-
-        git commit -am "chore: promote services → ${GA_TAG}"
-        git push -u origin bump-prod-${GA_TAG}
-
-    # ────────── 5. open pull‑request ────────────
-    - name: Open Pull Request
-      uses: peter-evans/create-pull-request@v5
-      with:
-        token:           ${{ secrets.GITHUB_TOKEN }}
-        title:           "Promote all services → ${{ env.GA_TAG }}"
-        commit-message:  "chore: promote services → ${{ env.GA_TAG }}"
-        body:            "Automated GA promotion from infra"
-        branch:          "bump-prod-${{ env.GA_TAG }}"   # ← interpolated
-        base:            main
+      # 7. Open a PR from promote-<tag> into main
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token:           ${{ secrets.GITHUB_TOKEN }}
+          branch:          promote-${{ env.GA_TAG }}
+          base:            main
+          title:           "Promote services → ${{ env.GA_TAG }}"
+          body:            |
+            This PR bumps the Docker image tags in:
+            - environments/favourite-api/values.yaml  
+            - environments/weather-api/values.yaml  
+            - environments/weather-frontend/values.yaml  
+            
+            to **${{ env.GA_TAG }}**.
