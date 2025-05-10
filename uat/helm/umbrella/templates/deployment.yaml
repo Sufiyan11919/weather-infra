@@ -23,9 +23,10 @@ spec:
           env:
             - name: ENVIRONMENT
               value: "uat"
-            {{- with .Values.extraEnv }}
-            {{- toYaml . | nindent 10 }}
-            {{- end }}
-          {{- with .Values.resources }}
-          resources: {{- toYaml . | nindent 10 }}
-          {{- end }}
+{{- with .Values.extraEnv }}
+{{ toYaml . | indent 12 }}
+{{- end }}
+{{- with .Values.resources }}
+          resources:
+{{ toYaml . | indent 12 }}
+{{- end }}
