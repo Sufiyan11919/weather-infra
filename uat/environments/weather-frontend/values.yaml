@@ -5,11 +5,13 @@ image:
 
 service:
   port: 80
+
 ingress:
   enabled: false
 
-
+extraEnv:                          # ← must start at column 1 (no indent)
   - name: WEATHER_API_HOST
     value: weather-api-uat
   - name: FAVOURITE_API_HOST
     value: favourite-api-uat
+
