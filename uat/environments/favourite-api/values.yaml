@@ -1,7 +1,7 @@
 # weather-infra/uat/environments/favourite-api/values.yaml
 image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/favourite-api
-  tag: "v3.1.2-rc.1"
+  tag: "v3.1.3-rc.1"
 
 service:
   port: 4000          # ← add the port the container listens on
