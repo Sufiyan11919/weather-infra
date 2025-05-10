@@ -1,3 +1,4 @@
+#weather-infra/environments/favourite-api/values.yaml
 # ---------- favourite-api · PROD values ----------
 useRollout: true
 replicaCount: 3

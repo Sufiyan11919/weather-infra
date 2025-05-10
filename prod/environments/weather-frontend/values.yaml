@@ -1,3 +1,4 @@
+#weather-infra/environments/weather-frontend/values.yaml
 # ---------- weather-frontend · PROD values ----------
 useRollout: true
 replicaCount: 3
