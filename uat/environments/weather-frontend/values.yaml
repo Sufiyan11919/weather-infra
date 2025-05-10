@@ -1,4 +1,4 @@
-#weather-infra/uat/environments/weather-frontend/values.yaml
+# uat/environments/weather-frontend/values.yaml
 image:
   repository: 943347376383.dkr.ecr.us-east-2.amazonaws.com/weather-frontend
   tag: "v4.0.0-rc.1"
@@ -9,9 +9,8 @@ service:
 ingress:
   enabled: false
 
-extraEnv:                          # ← must start at column 1 (no indent)
+extraEnv:        # ← must start at column 1
   - name: WEATHER_API_HOST
     value: weather-api-uat
   - name: FAVOURITE_API_HOST
     value: favourite-api-uat
-
