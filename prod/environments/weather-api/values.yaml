@@ -1,4 +1,4 @@
-# weather-infra/environments/weather-api/values.yaml
+# ---------- weather-api · PROD values ----------
 useRollout: true
 replicaCount: 3
 
@@ -12,7 +12,7 @@ service:
 ingress:
   enabled: true
   className: nginx
-  activeHost:  weather-api.prod.example.com
+  activeHost: weather-api.prod.example.com
   previewHost: weather-api-preview.prod.example.com
 
 extraEnv:
@@ -21,5 +21,4 @@ extraEnv:
 
 rollout:
   autoPromotionEnabled: false
-
-nameOverride: weather-api-uat
+  scaleDownDelaySeconds: 30

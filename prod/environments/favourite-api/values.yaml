@@ -1,4 +1,4 @@
-# weather-infra/environments/favourite-api/values.yaml
+# ---------- favourite-api · PROD values ----------
 useRollout: true
 replicaCount: 3
 
@@ -12,11 +12,9 @@ service:
 ingress:
   enabled: false
   className: nginx
-  activeHost:  favourite-api.prod.example.com
+  activeHost: favourite-api.prod.example.com
   previewHost: favourite-api-preview.prod.example.com
 
-# ── NEW ───────────────────────────────────────────────
 rollout:
-  autoPromotionEnabled: false      # flip to true if you want auto-promote
-# ──────────────────────────────────────────────────────
-nameOverride: favourite-api-uat
+  autoPromotionEnabled: false      # manual gate
+  scaleDownDelaySeconds: 30        # old pods culled 30 s after promotion

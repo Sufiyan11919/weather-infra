@@ -1,6 +1,4 @@
-# weather-infra/environments/weather-frontend/values.yaml
-nameOverride: weather-frontend
-
+# ---------- weather-frontend · PROD values ----------
 useRollout: true
 replicaCount: 3
 
@@ -9,16 +7,17 @@ image:
   tag: "v3.1.8"
 
 service:
-  type: LoadBalancer                # ← expose through an ELB/NLB
+  type: LoadBalancer
   port: 80
-  annotations:                      # optional but recommended
+  annotations:
     service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
 
 ingress:
-  enabled: false                     # keep Ingress if you want, otherwise set false
+  enabled: false
   className: nginx
-  activeHost:  weather.prod.example.com
+  activeHost: weather.prod.example.com
   previewHost: weather-preview.prod.example.com
 
 rollout:
   autoPromotionEnabled: false
+  scaleDownDelaySeconds: 30

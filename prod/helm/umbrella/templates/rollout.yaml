@@ -11,7 +11,8 @@ spec:
     blueGreen:
       activeService:  {{ include "weather.fullname" . }}
       previewService: {{ include "weather.fullname" . }}-preview
-      autoPromotionEnabled: {{ default false (.Values.rollout.autoPromotionEnabled) }}
+      autoPromotionEnabled: {{ .Values.rollout.autoPromotionEnabled | default false }}
+      scaleDownDelaySeconds: {{ .Values.rollout.scaleDownDelaySeconds | default 30 }}
   selector:
     matchLabels:
       app: {{ include "weather.fullname" . }}
@@ -29,4 +30,6 @@ spec:
           env:
             - name: ENVIRONMENT
               value: "prod"
-          resources: {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.resources }}
+          resources: {{- toYaml . | nindent 12 }}
+          {{- end }}
