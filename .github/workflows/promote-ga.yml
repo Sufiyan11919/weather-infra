@@ -10,12 +10,11 @@ env:
   AWS_REGION: us-east-2
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   SERVICES: favourite-api weather-api weather-frontend
-  GA_TAG: ${{ github.ref_name }}   # e.g. v2.0.0
+  GA_TAG: ${{ github.ref_name }}
 
 jobs:
   promote:
     runs-on: ubuntu-latest
-
     steps:
       # 1. Checkout full repo
       - name: Checkout repo
@@ -23,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # 2. AWS creds (needed for ECR operations)
+      # 2. AWS creds (for ECR)
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -47,9 +46,9 @@ jobs:
             fi
 
             # pull the RC tag from your UAT overlay
-            RC_TAG=$(grep '^  tag:' \
-                      environments/$svc/values.yaml \
-                     | awk -F'"' '{print $2}')
+            RC_PATH=uat/environments/$svc/values.yaml
+            echo "Reading RC tag from $RC_PATH"
+            RC_TAG=$(grep '^  tag:' "$RC_PATH" | awk -F'"' '{print $2}')
 
             aws ecr batch-get-image \
               --repository-name "$svc" \
@@ -69,11 +68,11 @@ jobs:
       - name: Create branch
         run: git checkout -b promote-${GA_TAG}
 
-      # 5. Update image tags in each environment’s values.yaml
-      - name: Bump image tags in values.yaml
+      # 5. Update image tags in each prod environment’s values.yaml
+      - name: Bump image tags in prod overlays
         run: |
           for svc in $SERVICES; do
-            file=environments/$svc/values.yaml
+            file=prod/environments/$svc/values.yaml
             echo "Updating $file → tag: \"${GA_TAG}\""
             sed -i "s|tag: \".*\"|tag: \"${GA_TAG}\"|" "$file"
           done
@@ -83,8 +82,8 @@ jobs:
         run: |
           git config user.name  "promotion-bot"
           git config user.email "bot@example.com"
-          git add environments/*/values.yaml
-          git commit -m "chore: bump image tags → ${GA_TAG}"
+          git add prod/environments/*/values.yaml
+          git commit -m "chore: bump prod image tags → ${GA_TAG}"
           git push -u origin promote-${GA_TAG}
 
       # 7. Open a PR from promote-<tag> into main
@@ -97,8 +96,8 @@ jobs:
           title:           "Promote services → ${{ env.GA_TAG }}"
           body:            |
             This PR bumps the Docker image tags in:
-            - environments/favourite-api/values.yaml  
-            - environments/weather-api/values.yaml  
-            - environments/weather-frontend/values.yaml  
+            - prod/environments/favourite-api/values.yaml  
+            - prod/environments/weather-api/values.yaml  
+            - prod/environments/weather-frontend/values.yaml  
             
             to **${{ env.GA_TAG }}**.
