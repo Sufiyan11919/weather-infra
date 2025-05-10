@@ -1,4 +1,3 @@
-#weather-infra/uat/helm/umbrella/templates/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -24,8 +23,8 @@ spec:
           env:
             - name: ENVIRONMENT
               value: "uat"
-            {{- with .Values.extraEnv }}            # ← merge any extraEnv entries
-            {{- toYaml . | nindent 10 }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
             {{- end }}
           {{- with .Values.resources }}
           resources: {{- toYaml . | nindent 10 }}
